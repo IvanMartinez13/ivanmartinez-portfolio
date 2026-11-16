@@ -1,0 +1,206 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+    color-scheme: light;
+    --portfolio-background: #f8f9fa;
+    --portfolio-surface: #ffffff;
+    --portfolio-primary: #163a5f;
+    --portfolio-ink: #101828;
+    --portfolio-muted: #667085;
+    --portfolio-accent: #0d9488;
+    --portfolio-accent-strong: #0b6b64;
+    --portfolio-tint: #f1f4f7;
+    --portfolio-line: #e4e7ec;
+    --portfolio-container: 76rem;
+    --portfolio-section-space: clamp(4.5rem, 9vw, 7.5rem);
+    --portfolio-space-1: 0.25rem;
+    --portfolio-space-2: 0.5rem;
+    --portfolio-space-3: 0.75rem;
+    --portfolio-space-4: 1rem;
+    --portfolio-space-6: 1.5rem;
+    --portfolio-space-8: 2rem;
+    --portfolio-font-caption: 0.75rem;
+    --portfolio-font-body: 1rem;
+    --portfolio-font-lead: 1.125rem;
+    --portfolio-font-section: clamp(1.875rem, 4vw, 2.75rem);
+    --portfolio-font-display: clamp(3rem, 8vw, 6.75rem);
+    --portfolio-border-width: 1px;
+    --portfolio-radius-control: 0.75rem;
+    --portfolio-radius-card: 1.15rem;
+    --portfolio-shadow-soft: 0 18px 45px rgb(16 24 40 / 0.07);
+    --portfolio-transition: 180ms;
+
+    --background: var(--portfolio-background);
+    --foreground: var(--portfolio-ink);
+    --card: var(--portfolio-surface);
+    --card-foreground: var(--portfolio-ink);
+    --popover: var(--portfolio-surface);
+    --popover-foreground: var(--portfolio-ink);
+    --primary: var(--portfolio-primary);
+    --primary-foreground: #ffffff;
+    --secondary: #edf1f5;
+    --secondary-foreground: var(--portfolio-ink);
+    --muted: #f1f3f5;
+    --muted-foreground: var(--portfolio-muted);
+    --accent: #e7f3f2;
+    --accent-foreground: var(--portfolio-primary);
+    --destructive: #b42318;
+    --destructive-foreground: #ffffff;
+    --border: var(--portfolio-line);
+    --input: var(--portfolio-line);
+    --ring: var(--portfolio-primary);
+    --radius: 0.75rem;
+    --sidebar: #ffffff;
+    --sidebar-foreground: var(--portfolio-ink);
+    --sidebar-primary: var(--portfolio-primary);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #edf1f5;
+    --sidebar-accent-foreground: var(--portfolio-ink);
+    --sidebar-border: var(--portfolio-line);
+    --sidebar-ring: var(--portfolio-primary);
+}
+
+.dark {
+    color-scheme: dark;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+}
+
+@theme inline {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-canvas: var(--portfolio-background);
+    --color-surface: var(--portfolio-surface);
+    --color-line: var(--portfolio-line);
+    --color-portfolio-primary: var(--portfolio-primary);
+    --color-portfolio-ink: var(--portfolio-ink);
+    --color-portfolio-muted: var(--portfolio-muted);
+    --color-portfolio-accent: var(--portfolio-accent-strong);
+    --color-portfolio-accent-soft: var(--portfolio-accent);
+    --color-portfolio-tint: var(--portfolio-tint);
+
+    --text-portfolio-caption: var(--portfolio-font-caption);
+    --text-portfolio-body: var(--portfolio-font-body);
+    --text-portfolio-lead: var(--portfolio-font-lead);
+    --text-portfolio-section: var(--portfolio-font-section);
+    --text-portfolio-display: var(--portfolio-font-display);
+
+    --spacing-portfolio-1: var(--portfolio-space-1);
+    --spacing-portfolio-2: var(--portfolio-space-2);
+    --spacing-portfolio-3: var(--portfolio-space-3);
+    --spacing-portfolio-4: var(--portfolio-space-4);
+    --spacing-portfolio-6: var(--portfolio-space-6);
+    --spacing-portfolio-8: var(--portfolio-space-8);
+    --spacing-portfolio-section: var(--portfolio-section-space);
+
+    --radius-portfolio-control: var(--portfolio-radius-control);
+    --radius-portfolio-card: var(--portfolio-radius-card);
+    --shadow-portfolio-soft: var(--portfolio-shadow-soft);
+    --container-portfolio: var(--portfolio-container);
+    --breakpoint-sm: 40rem;
+    --breakpoint-md: 48rem;
+    --breakpoint-lg: 64rem;
+    --breakpoint-xl: 80rem;
+    --breakpoint-2xl: 90rem;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    }
+}
+
+@keyframes portfolio-enter {
+    from {
+        opacity: 0;
+        transform: translateY(0.75rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

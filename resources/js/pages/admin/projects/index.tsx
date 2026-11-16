@@ -1,0 +1,37 @@
+import { Head, Link, router } from '@inertiajs/react';
+import { Copy, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+type ProjectRow = { id: number; name: string; slug: string; summary: string; category: string; development_status: string; publication_status: 'draft' | 'published'; is_featured: boolean; is_visible: boolean; sort_order: number; technologies_count: number; case_study_sections_count: number };
+type PageLink = { url: string | null; label: string; active: boolean };
+type Props = { projects: { data: ProjectRow[]; links: PageLink[]; total: number; from: number | null; to: number | null }; filters: Record<string, string | boolean>; categories: string[]; developmentStatuses: Record<string, string> };
+
+export default function ProjectsIndex({ projects, filters, categories, developmentStatuses }: Props) {
+    const remove = (project: ProjectRow) => {
+        if (window.confirm(`¿Eliminar “${project.name}” y su multimedia? Esta acción no se puede deshacer.`)) {
+            router.delete(`/admin/projects/${project.id}`);
+        }
+    };
+    const duplicate = (project: ProjectRow) => router.post(`/admin/projects/${project.id}/duplicate`);
+
+    return <>
+        <Head title="Proyectos · Administración" />
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="mb-2 text-sm font-medium text-teal-700">Portfolio</p><h1 className="text-3xl font-semibold tracking-tight">Proyectos</h1><p className="mt-2 text-sm text-slate-500">Administra borradores, casos de estudio y publicaciones.</p></div><Button asChild className="gap-2"><Link href="/admin/projects/create"><Plus className="size-4" /> Nuevo proyecto</Link></Button></div>
+        <Card className="mb-5 border-slate-200 shadow-none"><CardContent className="p-4"><form action="/admin/projects" method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <div className="space-y-1.5 lg:col-span-2"><Label htmlFor="search">Buscar</Label><div className="relative"><Search className="absolute top-2.5 left-3 size-4 text-slate-400" /><Input id="search" name="search" defaultValue={String(filters.search ?? '')} placeholder="Nombre, resumen o empresa" className="pl-9" /></div></div>
+            <div className="space-y-1.5"><Label htmlFor="publication_status">Publicación</Label><select id="publication_status" name="publication_status" defaultValue={String(filters.publication_status ?? '')} className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="">Todos</option><option value="draft">Borradores</option><option value="published">Publicados</option></select></div>
+            <div className="space-y-1.5"><Label htmlFor="category">Categoría</Label><select id="category" name="category" defaultValue={String(filters.category ?? '')} className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="">Todas</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></div>
+            <div className="space-y-1.5"><Label htmlFor="development_status">Desarrollo</Label><select id="development_status" name="development_status" defaultValue={String(filters.development_status ?? '')} className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="">Todos</option>{Object.entries(developmentStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+            <div className="space-y-1.5"><Label htmlFor="featured">Destacado</Label><select id="featured" name="featured" defaultValue={String(filters.featured ?? '')} className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="">Todos</option><option value="1">Destacados</option><option value="0">No destacados</option></select></div>
+            <div className="flex items-end gap-2 lg:col-span-6"><Button type="submit" variant="secondary">Filtrar</Button><Button asChild variant="ghost"><Link href="/admin/projects">Limpiar</Link></Button></div>
+        </form></CardContent></Card>
+        <div className="mb-3 flex items-center justify-between text-sm text-slate-500"><span>{projects.total} {projects.total === 1 ? 'proyecto' : 'proyectos'}</span>{projects.from && <span>{projects.from}–{projects.to} de {projects.total}</span>}</div>
+        {projects.data.length === 0 ? <Card className="border-dashed border-slate-300 shadow-none"><CardContent className="py-16 text-center"><p className="font-medium">No hay proyectos que coincidan.</p><p className="mt-2 text-sm text-slate-500">Prueba otros filtros o crea un proyecto nuevo.</p></CardContent></Card> : <div className="space-y-3">{projects.data.map((project) => <Card key={project.id} className="border-slate-200 shadow-none"><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center gap-2"><h2 className="font-semibold">{project.name}</h2><Badge variant={project.publication_status === 'published' ? 'secondary' : 'outline'}>{project.publication_status === 'published' ? 'Publicado' : 'Borrador'}</Badge>{project.is_featured && <Badge className="bg-teal-50 text-teal-800">Destacado</Badge>}{!project.is_visible && <Badge variant="outline">Oculto</Badge>}</div><p className="line-clamp-2 text-sm text-slate-500">{project.summary}</p><p className="mt-2 text-xs text-slate-400">{project.category} · {developmentStatuses[project.development_status] ?? project.development_status} · {project.technologies_count} tecnologías · {project.case_study_sections_count} secciones</p></div><div className="flex shrink-0 flex-wrap items-center gap-2"><Button asChild size="sm" variant="outline"><Link href={`/admin/projects/${project.id}/preview`}><Eye className="mr-1 size-4" />Vista previa</Link></Button><Button asChild size="sm" variant="outline"><Link href={`/admin/projects/${project.id}/edit`}><Pencil className="mr-1 size-4" />Editar</Link></Button><Button type="button" size="icon" variant="ghost" title="Duplicar como borrador" aria-label={`Duplicar ${project.name}`} onClick={() => duplicate(project)}><Copy className="size-4" /></Button><Button type="button" size="icon" variant="ghost" title="Eliminar" aria-label={`Eliminar ${project.name}`} onClick={() => remove(project)}><Trash2 className="size-4 text-red-600" /></Button></div></CardContent></Card>)}</div>}
+        {projects.links.length > 1 && <nav aria-label="Paginación de proyectos" className="mt-6 flex flex-wrap justify-center gap-2">{projects.links.map((link, index) => { const label = link.label.replace('&laquo;', '‹').replace('&raquo;', '›'); return link.url ? <Link key={`${link.label}-${index}`} href={link.url} preserveScroll className={`rounded-md border px-3 py-2 text-sm ${link.active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>{label}</Link> : <span key={`${link.label}-${index}`} className="rounded-md border border-slate-100 px-3 py-2 text-sm text-slate-300">{label}</span>; })}</nav>}
+        <p className="mt-5 text-xs text-slate-400">El estado de desarrollo y el estado de publicación se gestionan por separado.</p>
+    </>;
+}
