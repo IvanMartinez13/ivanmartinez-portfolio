@@ -1,4 +1,10 @@
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | JsonValue[]
+    | { [key: string]: JsonValue };
 
 export type PageBlock = {
     id: string;
@@ -7,6 +13,19 @@ export type PageBlock = {
     visible: boolean;
     variant: 'default' | 'subtle' | 'bordered';
     spacing: 'none' | 'compact' | 'default' | 'relaxed';
+    appearance?: {
+        background?:
+            | 'default'
+            | 'light'
+            | 'surface'
+            | 'navy'
+            | 'primary'
+            | 'turquoise';
+        contrast?: 'auto' | 'light' | 'dark';
+        alignment?: 'left' | 'center' | 'right';
+        content_width?: 'narrow' | 'standard' | 'wide' | 'full';
+        graphic?: 'none' | 'grid' | 'lines' | 'orbital';
+    };
     nav_label?: string | null;
     content: Record<string, JsonValue>;
     data?: Record<string, JsonValue> | JsonValue[];

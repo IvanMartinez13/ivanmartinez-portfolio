@@ -8,6 +8,7 @@ use App\Models\PortfolioPage;
 use App\Models\PortfolioPageRevision;
 use App\Services\Pages\BlockRegistry;
 use App\Services\Pages\BuildPageBlocks;
+use App\Services\Pages\SyncMediaReferences;
 use App\Services\Portfolio\BuildPublicPortfolio;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,13 +40,14 @@ class PortfolioPageController extends Controller
         ]);
     }
 
-    public function store(SavePortfolioPageRequest $request): RedirectResponse
+    public function store(SavePortfolioPageRequest $request, SyncMediaReferences $media): RedirectResponse
     {
         $data = $this->validatedData($request->validated());
         $page = PortfolioPage::query()->create([
             'key' => 'page-'.Str::uuid(), 'title' => $data['title'], 'slug' => $data['slug'], 'status' => 'draft',
             'seo_title' => $data['seo_title'] ?? null, 'seo_description' => $data['seo_description'] ?? null, 'draft_blocks' => $data['blocks'],
         ]);
+        $media->sync($page, 'draft', $data['blocks']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Borrador guardado.']);
 
@@ -59,20 +61,21 @@ class PortfolioPageController extends Controller
         return $this->editor($page, $registry);
     }
 
-    public function update(SavePortfolioPageRequest $request, PortfolioPage $page): RedirectResponse
+    public function update(SavePortfolioPageRequest $request, PortfolioPage $page, SyncMediaReferences $media): RedirectResponse
     {
         $data = $this->validatedData($request->validated());
         $page->fill([
             'title' => $data['title'], 'slug' => $data['slug'], 'seo_title' => $data['seo_title'] ?? null,
             'seo_description' => $data['seo_description'] ?? null, 'draft_blocks' => $data['blocks'],
         ])->save();
+        $media->sync($page, 'draft', $data['blocks']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Borrador guardado. La versión pública no cambia hasta publicar.']);
 
         return back();
     }
 
-    public function duplicate(PortfolioPage $page): RedirectResponse
+    public function duplicate(PortfolioPage $page, SyncMediaReferences $media): RedirectResponse
     {
         $this->authorize('create', PortfolioPage::class);
         $copy = $page->replicate();
@@ -92,6 +95,7 @@ class PortfolioPageController extends Controller
             return $block;
         })->all();
         $copy->save();
+        $media->sync($copy, 'draft', $copy->draft_blocks ?? []);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Página duplicada como borrador.']);
 
@@ -108,16 +112,16 @@ class PortfolioPageController extends Controller
         return to_route('admin.pages.index');
     }
 
-    public function publish(PortfolioPage $page): RedirectResponse
+    public function publish(PortfolioPage $page, SyncMediaReferences $media): RedirectResponse
     {
         $this->authorize('publish', $page);
         if (PortfolioPage::query()->where('published_slug', $page->slug)->whereKeyNot($page->id)->exists()) {
             throw ValidationException::withMessages(['slug' => 'Otra página publicada utiliza este slug.']);
         }
-        DB::transaction(function () use ($page): void {
+        DB::transaction(function () use ($page, $media): void {
             $blocks = $page->draft_blocks ?? [];
             $version = (int) ($page->revisions()->max('version') ?? 0) + 1;
-            PortfolioPageRevision::query()->create([
+            $revision = PortfolioPageRevision::query()->create([
                 'portfolio_page_id' => $page->id, 'version' => $version, 'title' => $page->title, 'slug' => $page->slug,
                 'seo_title' => $page->seo_title, 'seo_description' => $page->seo_description, 'blocks' => $blocks,
                 'created_by' => request()->user()?->id,
@@ -130,6 +134,8 @@ class PortfolioPageController extends Controller
             $page->status = 'published';
             $page->published_at = now();
             $page->save();
+            $media->sync($page, 'published', $blocks);
+            $media->sync($page, 'revision', $blocks, $revision);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Página publicada.']);
@@ -178,7 +184,7 @@ class PortfolioPageController extends Controller
         return ['portfolio' => $portfolio, 'builderBlocks' => $blocks, 'pagePreview' => true, 'pageSeo' => ['title' => $page->seo_title, 'description' => $page->seo_description]];
     }
 
-    public function restore(PortfolioPage $page, PortfolioPageRevision $revision): RedirectResponse
+    public function restore(PortfolioPage $page, PortfolioPageRevision $revision, SyncMediaReferences $media): RedirectResponse
     {
         $this->authorize('update', $page);
         abort_unless($revision->portfolio_page_id === $page->id, 404);
@@ -189,6 +195,7 @@ class PortfolioPageController extends Controller
             'title' => $revision->title, 'slug' => $revision->slug, 'seo_title' => $revision->seo_title,
             'seo_description' => $revision->seo_description, 'draft_blocks' => $revision->blocks,
         ])->save();
+        $media->sync($page, 'draft', $revision->blocks ?? []);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Versión restaurada al borrador. Publica para aplicarla al sitio.']);
 

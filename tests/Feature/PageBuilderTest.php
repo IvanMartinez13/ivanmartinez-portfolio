@@ -217,3 +217,38 @@ test('the portfolio page seeder creates builder blocks and preserves edits on re
     expect($home->fresh()->draft_blocks[0]['content']['headline'])->toBe('Contenido editado')
         ->and($home->fresh()->revisions()->count())->toBe(1);
 });
+
+test('home hero design and copy settings are saved through the CMS publication', function () {
+    signInPageAdmin($this);
+    $home = PortfolioPage::query()->where('key', 'home')->firstOrFail();
+    $blocks = $home->draft_blocks;
+    $heroIndex = collect($blocks)->search(fn (array $block): bool => ($block['type'] ?? null) === 'hero');
+    expect($heroIndex)->not->toBeFalse();
+
+    $blocks[$heroIndex]['appearance'] = [
+        'background' => 'navy',
+        'contrast' => 'light',
+        'alignment' => 'left',
+        'content_width' => 'wide',
+        'graphic' => 'orbital',
+    ];
+    $blocks[$heroIndex]['content']['headline'] = 'De la idea al producto. Del código a la solución.';
+    $blocks[$heroIndex]['content']['body'] = 'Aplicaciones web para resolver problemas reales.';
+    $blocks[$heroIndex]['content']['show_graphic'] = false;
+
+    $this->put(route('admin.pages.update', $home), [
+        'title' => $home->title,
+        'slug' => $home->slug,
+        'seo_title' => $home->seo_title,
+        'seo_description' => $home->seo_description,
+        'blocks_json' => json_encode($blocks),
+    ])->assertRedirect();
+    $this->post(route('admin.pages.publish', $home))->assertRedirect();
+
+    $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where("builderBlocks.$heroIndex.content.headline", 'De la idea al producto. Del código a la solución.')
+        ->where("builderBlocks.$heroIndex.content.body", 'Aplicaciones web para resolver problemas reales.')
+        ->where("builderBlocks.$heroIndex.content.show_graphic", false)
+        ->where("builderBlocks.$heroIndex.appearance.background", 'navy')
+        ->where("builderBlocks.$heroIndex.appearance.graphic", 'orbital'));
+});

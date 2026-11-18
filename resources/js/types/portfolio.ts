@@ -13,13 +13,55 @@ export type PortfolioProject = {
     imageAlt: string | null;
     technologies: string[];
     isFeatured: boolean;
+    visualColor?: string | null;
+};
+
+export type AppearanceConfig = {
+    preset: string;
+    colors: {
+        navy: string;
+        primary: string;
+        secondary: string;
+        background: string;
+        surface: string;
+        text: string;
+        muted: string;
+        accent: string;
+        tint: string;
+        line: string;
+    };
+    fontFamily: 'Geist' | 'Inter' | 'System';
+    typeScale: 'compact' | 'balanced' | 'expressive';
+    radius: 'sharp' | 'soft' | 'round';
+    shadow: 'none' | 'subtle' | 'editorial';
+    container: 'compact' | 'standard' | 'wide';
+    buttonStyle: 'solid' | 'outline' | 'editorial';
+    spacing: 'compact' | 'comfortable' | 'generous';
+    motion: 'reduced' | 'subtle' | 'full';
+    headerVariant: 'editorial' | 'minimal';
+    footerVariant: 'editorial' | 'minimal';
+};
+
+export type AppearanceTheme = AppearanceConfig & {
+    cssVariables: Record<string, string>;
 };
 
 export type PublicChromeContent = {
     identity: { monogram: string; name: string };
     navigation: PortfolioLink[];
-    contact: { cvUrl: string | null; email: string | null; linkedin: string | null; github: string | null; website: string | null };
+    resume: {
+        published: boolean;
+        showNavigation: boolean;
+        navigationLabel: string;
+    };
+    contact: {
+        email: string | null;
+        linkedin: string | null;
+        github: string | null;
+        website: string | null;
+    };
     footer: { copyright: string; note: string };
+    appearance: AppearanceTheme;
 };
 
 export type ProjectCaseStudySection = {
@@ -35,6 +77,7 @@ export type ProjectDetail = {
     summary: string;
     description: string | null;
     category: string;
+    visualColor?: string | null;
     projectType: string;
     role: string;
     clientCompany: string | null;
@@ -50,7 +93,12 @@ export type ProjectDetail = {
     preview: boolean;
     technologies: { name: string; slug: string; category: string }[];
     sections: ProjectCaseStudySection[];
-    media: { kind: 'image' | 'video'; url: string; alt: string | null; caption: string | null }[];
+    media: {
+        kind: 'image' | 'video';
+        url: string;
+        alt: string | null;
+        caption: string | null;
+    }[];
 };
 
 export type TechnologyGroup = {
@@ -99,6 +147,11 @@ export type PortfolioContent = {
         availability: string;
     };
     navigation: PortfolioLink[];
+    resume: {
+        published: boolean;
+        showNavigation: boolean;
+        navigationLabel: string;
+    };
     sections: PortfolioSectionConfig[];
     projects: PortfolioProject[];
     about: {
@@ -115,7 +168,6 @@ export type PortfolioContent = {
         linkedin: string | null;
         github: string | null;
         website: string | null;
-        cvUrl: string | null;
     };
     footer: {
         copyright: string;
@@ -126,4 +178,5 @@ export type PortfolioContent = {
         metaDescription: string;
         locale: string;
     };
+    appearance: AppearanceTheme;
 };

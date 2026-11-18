@@ -17,10 +17,17 @@ type Props = {
     portfolio: PortfolioContent;
     builderBlocks?: PageBlock[];
     pagePreview?: boolean;
+    appearancePreview?: boolean;
     pageSeo?: { title: string | null; description: string | null };
 };
 
-export default function Welcome({ portfolio, builderBlocks, pagePreview = false, pageSeo }: Props) {
+export default function Welcome({
+    portfolio,
+    builderBlocks,
+    pagePreview = false,
+    appearancePreview = false,
+    pageSeo,
+}: Props) {
     const sections: Record<PortfolioSectionKey, ReactNode> = {
         hero: <HeroSection portfolio={portfolio} />,
         projects: <ProjectsSection portfolio={portfolio} />,
@@ -35,16 +42,40 @@ export default function Welcome({ portfolio, builderBlocks, pagePreview = false,
         .sort((first, second) => first.order - second.order);
 
     return (
-        <PublicLayout portfolio={portfolio}>
+        <PublicLayout
+            portfolio={portfolio}
+            appearancePreview={appearancePreview}
+        >
             <Head
                 title={`${pageSeo?.title || portfolio.settings.siteTitle} · ${portfolio.identity.role}`}
             >
-                <meta name="description" content={pageSeo?.description || portfolio.settings.metaDescription} />
+                <meta
+                    name="description"
+                    content={
+                        pageSeo?.description ||
+                        portfolio.settings.metaDescription
+                    }
+                />
             </Head>
             <main id="main-content">
-                {builderBlocks ? <PageBlockRenderer blocks={builderBlocks} portfolio={portfolio} preview={pagePreview} /> : visibleSections.map((section) => (
-                    <div key={section.key}>{sections[section.key]}</div>
-                ))}
+                {builderBlocks ? (
+                    builderBlocks.length > 0 ? (
+                        <PageBlockRenderer
+                            blocks={builderBlocks}
+                            portfolio={portfolio}
+                            preview={pagePreview}
+                        />
+                    ) : (
+                        <section className="mx-auto min-h-[40vh] max-w-portfolio px-5 py-20 text-sm leading-7 text-portfolio-muted sm:px-8 lg:px-10">
+                            El contenido público de esta página estará
+                            disponible próximamente.
+                        </section>
+                    )
+                ) : (
+                    visibleSections.map((section) => (
+                        <div key={section.key}>{sections[section.key]}</div>
+                    ))
+                )}
             </main>
         </PublicLayout>
     );

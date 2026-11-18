@@ -15,7 +15,7 @@ export function Button({
             className={cn(
                 'h-12 rounded-portfolio-control px-5 font-medium shadow-none transition duration-[var(--portfolio-transition)] ease-out hover:-translate-y-0.5 focus-visible:ring-portfolio-accent/35',
                 variant === 'default' &&
-                    'bg-portfolio-primary text-white hover:bg-portfolio-primary/90',
+                    'public-button-primary bg-portfolio-primary text-white hover:bg-portfolio-primary/90',
                 variant === 'outline' &&
                     'border-line bg-transparent text-portfolio-ink hover:border-portfolio-primary/30 hover:bg-portfolio-tint hover:text-portfolio-primary',
                 className,

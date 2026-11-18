@@ -16,9 +16,11 @@ export function Footer({ portfolio }: Props) {
                     <p className="text-sm font-semibold tracking-[-0.03em] text-portfolio-ink">
                         {footer.copyright}
                     </p>
-                    <p className="mt-1 text-xs text-portfolio-muted">
-                        {footer.note}
-                    </p>
+                    {footer.note && (
+                        <p className="mt-1 text-xs text-portfolio-muted">
+                            {footer.note}
+                        </p>
+                    )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                     {contact.email && (
@@ -45,10 +47,24 @@ export function Footer({ portfolio }: Props) {
                         </a>
                     )}
                     {contact.github && (
-                        <a href={contact.github} target="_blank" rel="noreferrer" className="text-sm text-portfolio-muted transition-colors hover:text-portfolio-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none">GitHub</a>
+                        <a
+                            href={contact.github}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-portfolio-muted transition-colors hover:text-portfolio-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none"
+                        >
+                            GitHub
+                        </a>
                     )}
                     {contact.website && (
-                        <a href={contact.website} target="_blank" rel="noreferrer" className="text-sm text-portfolio-muted transition-colors hover:text-portfolio-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none">Sitio web</a>
+                        <a
+                            href={contact.website}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-portfolio-muted transition-colors hover:text-portfolio-primary focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none"
+                        >
+                            Sitio web
+                        </a>
                     )}
                     <a
                         href="#main-content"

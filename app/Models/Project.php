@@ -14,7 +14,7 @@ class Project extends Model
         'name', 'slug', 'summary', 'description', 'category', 'project_type', 'role',
         'client_company', 'started_at', 'completed_at', 'development_status',
         'publication_status', 'published_at', 'is_featured', 'is_visible', 'sort_order',
-        'main_image_path', 'main_image_alt', 'public_url', 'repository_url', 'seo_title', 'seo_description',
+        'main_image_path', 'main_image_alt', 'visual_color', 'public_url', 'repository_url', 'seo_title', 'seo_description',
     ];
 
     protected function casts(): array

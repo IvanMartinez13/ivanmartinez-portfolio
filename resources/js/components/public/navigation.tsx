@@ -5,25 +5,42 @@ import type { PortfolioLink } from '@/types/portfolio';
 
 type Props = {
     brand: string;
+    brandName?: string;
     links: PortfolioLink[];
-    cvUrl: string | null;
+    resume: {
+        published: boolean;
+        showNavigation: boolean;
+        navigationLabel: string;
+    };
 };
 
-export function Navigation({ brand, links, cvUrl }: Props) {
+export function Navigation({ brand, brandName, links, resume }: Props) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-40 border-b border-line bg-canvas">
+        <header className="relative z-40 border-b border-line bg-canvas">
             <nav
                 aria-label="Navegación principal"
-                className="mx-auto flex h-[4.5rem] w-full max-w-portfolio items-center justify-between px-5 sm:px-8 lg:h-20 lg:px-10"
+                className="mx-auto flex h-[4.5rem] w-full max-w-portfolio items-center justify-between px-5 sm:px-8 lg:h-[5.25rem] lg:px-10"
             >
                 <a
                     href="#main-content"
                     aria-label={`${brand} — inicio`}
-                    className="rounded-sm text-xl font-semibold tracking-[-0.09em] text-portfolio-primary focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none"
+                    className="group inline-flex items-center gap-3 rounded-sm text-sm font-semibold tracking-tight text-portfolio-ink focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none"
                 >
-                    {brand}
+                    <span className="grid size-10 place-items-center rounded-full bg-portfolio-navy font-mono text-sm text-white transition-transform duration-[var(--portfolio-transition)] group-hover:rotate-[-8deg]">
+                        {brand}
+                    </span>
+                    {brandName && (
+                        <span className="hidden sm:inline">
+                            {brandName
+                                .normalize('NFD')
+                                .replace(/[\u0300-\u036f]/g, '')
+                                .replace(/\s+/g, '')
+                                .toLowerCase()}
+                            <span className="text-portfolio-primary">.dev</span>
+                        </span>
+                    )}
                 </a>
 
                 <div className="hidden items-center gap-7 md:flex">
@@ -36,29 +53,16 @@ export function Navigation({ brand, links, cvUrl }: Props) {
                             {link.label}
                         </a>
                     ))}
-                    {cvUrl ? (
+                    {resume.published && resume.showNavigation && (
                         <Button asChild size="sm" className="h-10 px-4">
-                            <a href={cvUrl} target="_blank" rel="noreferrer">
-                                Ver CV
-                            </a>
-                        </Button>
-                    ) : (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            title="El enlace al CV está pendiente de configurar"
-                            aria-label="CV: enlace pendiente de configurar"
-                            className="h-10 cursor-not-allowed px-4 opacity-65"
-                        >
-                            CV pendiente
+                            <a href="/cv">{resume.navigationLabel}</a>
                         </Button>
                     )}
                 </div>
 
                 <button
                     type="button"
-                    className="inline-flex size-10 items-center justify-center rounded-full border border-line bg-white text-portfolio-primary transition-colors hover:bg-portfolio-tint focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none md:hidden"
+                    className="inline-flex size-11 items-center justify-center rounded-full border border-line bg-surface text-portfolio-primary transition-colors hover:bg-portfolio-tint focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:outline-none md:hidden"
                     aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
                     aria-expanded={isOpen}
                     aria-controls="mobile-navigation"
@@ -88,22 +92,13 @@ export function Navigation({ brand, links, cvUrl }: Props) {
                                 {link.label}
                             </a>
                         ))}
-                        {cvUrl ? (
+                        {resume.published && resume.showNavigation && (
                             <a
-                                href={cvUrl}
-                                target="_blank"
-                                rel="noreferrer"
+                                href="/cv"
                                 className="mt-2 inline-flex min-h-11 items-center justify-center rounded-full bg-portfolio-primary px-5 text-sm font-medium text-white focus-visible:ring-2 focus-visible:ring-portfolio-accent focus-visible:ring-offset-2 focus-visible:outline-none"
                             >
-                                Ver CV
+                                {resume.navigationLabel}
                             </a>
-                        ) : (
-                            <span
-                                aria-label="CV: enlace pendiente de configurar"
-                                className="mt-2 inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-medium text-portfolio-muted"
-                            >
-                                CV pendiente de configurar
-                            </span>
                         )}
                     </div>
                 </div>

@@ -92,10 +92,65 @@ test('project administration requires an administrator', function () {
     $this->put(route('admin.technologies.update', Technology::query()->first()), [])->assertForbidden();
 });
 
+test('Balón Control case study importer is idempotent, dry-runnable, and keeps the project unpublished', function () {
+    $project = Project::query()->where('slug', 'balon-control')->firstOrFail();
+    $originalSummary = $project->summary;
+
+    $this->artisan('projects:populate-balon-control --dry-run')->assertSuccessful();
+    expect($project->fresh()->summary)->toBe($originalSummary)
+        ->and($project->fresh()->technologies()->count())->toBe(0);
+
+    $this->artisan('projects:populate-balon-control')->assertSuccessful();
+    $this->artisan('projects:populate-balon-control')->assertSuccessful();
+
+    $project->refresh()->load(['technologies', 'caseStudySections']);
+    expect(Project::query()->where('slug', 'balon-control')->count())->toBe(1)
+        ->and($project->summary)->toBe('Aplicación móvil de gestión deportiva para entrenadores de fútbol que centraliza plantillas, entrenamientos, partidos y estadísticas.')
+        ->and($project->category)->toBe('Aplicación deportiva')
+        ->and($project->project_type)->toBe('Proyecto propio')
+        ->and($project->development_status)->toBe('in_progress')
+        ->and($project->publication_status)->toBe('draft')
+        ->and($project->published_at)->toBeNull()
+        ->and($project->is_featured)->toBeFalse()
+        ->and($project->technologies->pluck('slug')->sort()->values()->all())->toBe([
+            'expo', 'laravel', 'laravel-sanctum', 'php', 'postgresql', 'react-native', 'tanstack-query', 'typescript',
+        ])
+        ->and($project->caseStudySections)->toHaveCount(10)
+        ->and($project->caseStudySections->every(fn ($section): bool => filled($section->body) && $section->is_visible))->toBeTrue()
+        ->and($project->caseStudySections->firstWhere('key', 'learnings')?->title)->toBe('Limitaciones y siguientes pasos')
+        ->and(Technology::query()->where('slug', 'expo')->count())->toBe(1)
+        ->and(Technology::query()->where('slug', 'laravel-sanctum')->count())->toBe(1)
+        ->and(Technology::query()->where('slug', 'tanstack-query')->count())->toBe(1);
+
+    $this->get('/projects/balon-control')->assertNotFound();
+    $admin = User::factory()->create()->forceFill(['is_admin' => true]);
+    $this->actingAs($admin)->get(route('admin.projects.preview', $project))
+        ->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('projects/show')
+        ->where('preview', true)
+        ->has('project.sections', 10)
+        ->where('project.developmentStatus', 'En desarrollo'));
+});
+
+test('Balón Control importer preserves manually edited fields and hidden case study sections', function () {
+    $project = Project::query()->where('slug', 'balon-control')->firstOrFail();
+    $project->update(['summary' => 'Resumen escrito manualmente.']);
+    $section = $project->caseStudySections()->where('key', 'context')->firstOrFail();
+    $section->update(['body' => 'Contexto escrito manualmente.', 'is_visible' => false]);
+
+    $this->artisan('projects:populate-balon-control')->assertSuccessful();
+
+    expect($project->fresh()->summary)->toBe('Resumen escrito manualmente.')
+        ->and($section->fresh()->body)->toBe('Contexto escrito manualmente.')
+        ->and($section->fresh()->is_visible)->toBeFalse()
+        ->and($project->fresh()->publication_status)->toBe('draft');
+});
+
 test('administrators can create update duplicate and delete projects', function () {
     signInProjectAdmin($this);
     $technology = Technology::query()->where('slug', 'laravel')->firstOrFail();
     $payload = projectPayload([
+        'visual_color' => '#16243B',
         'technology_ids' => [$technology->id],
         'case_study_sections' => collect(projectPayload()['case_study_sections'])->map(function (array $section): array {
             return $section['key'] === 'outcomes'
@@ -107,6 +162,7 @@ test('administrators can create update duplicate and delete projects', function 
     $this->post(route('admin.projects.store'), $payload)->assertRedirect();
     $project = Project::query()->where('slug', 'proyecto-de-pruebas')->firstOrFail();
     expect($project->publication_status)->toBe('draft')
+        ->and($project->visual_color)->toBe('#16243B')
         ->and($project->technologies->pluck('id')->all())->toBe([$technology->id])
         ->and($project->caseStudySections()->where('key', 'outcomes')->value('is_visible'))->toBeTrue();
 
@@ -132,6 +188,24 @@ test('administrators can create update duplicate and delete projects', function 
 
     $this->delete(route('admin.projects.destroy', $copy))->assertRedirect(route('admin.projects.index'));
     expect(Project::query()->whereKey($copy->id)->exists())->toBeFalse();
+});
+
+test('administrators can create a valid project directly as published', function () {
+    signInProjectAdmin($this);
+    $payload = projectPayload([
+        'publication_status' => 'published',
+        'is_visible' => true,
+        'summary' => 'Descripción revisada y lista para publicar.',
+        'category' => 'Aplicación web',
+        'project_type' => 'Producto digital',
+        'role' => 'Desarrollador Full Stack',
+    ]);
+
+    $this->post(route('admin.projects.store'), $payload)->assertRedirect();
+
+    $project = Project::query()->where('slug', $payload['slug'])->firstOrFail();
+    expect($project->publication_status)->toBe('published')
+        ->and($project->published_at)->not->toBeNull();
 });
 
 test('admin project list supports text and state filters', function () {
@@ -166,6 +240,9 @@ test('project validation rejects unsafe slugs and unsupported external video hos
 
     $badVideo = projectPayload(['video_url' => 'https://example.org/video']);
     $this->post(route('admin.projects.store'), $badVideo)->assertSessionHasErrors('video_url');
+
+    $badVisualColor = projectPayload(['visual_color' => 'url(javascript:alert(1))']);
+    $this->post(route('admin.projects.store'), $badVisualColor)->assertSessionHasErrors('visual_color');
 
     $unreviewed = projectPayload([
         'publication_status' => 'published',

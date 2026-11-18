@@ -3,75 +3,1045 @@ import { ArrowLeft, Eye, Save, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-type CaseSection = { key: string; title: string; body: string; position: number; is_visible: boolean };
-type Media = { id: number; kind: 'image' | 'video'; url: string | null; alt_text: string | null; caption: string | null; position: number; is_visible: boolean };
-type ProjectData = { id: number | null; name: string; slug: string; summary: string; description: string; category: string; project_type: string; role: string; client_company: string; started_at: string; completed_at: string; development_status: string; publication_status: 'draft' | 'published'; is_featured: boolean; is_visible: boolean; sort_order: number; public_url: string; repository_url: string; seo_title: string; seo_description: string; main_image_url: string | null; main_image_alt: string; technology_ids: number[]; media: Media[]; case_study_sections: CaseSection[] };
+type CaseSection = {
+    key: string;
+    title: string;
+    body: string;
+    position: number;
+    is_visible: boolean;
+};
+type Media = {
+    id: number;
+    kind: 'image' | 'video';
+    url: string | null;
+    alt_text: string | null;
+    caption: string | null;
+    position: number;
+    is_visible: boolean;
+};
+type ProjectData = {
+    id: number | null;
+    name: string;
+    slug: string;
+    summary: string;
+    description: string;
+    category: string;
+    project_type: string;
+    role: string;
+    client_company: string;
+    started_at: string;
+    completed_at: string;
+    development_status: string;
+    publication_status: 'draft' | 'published';
+    is_featured: boolean;
+    is_visible: boolean;
+    sort_order: number;
+    visual_color: string;
+    public_url: string;
+    repository_url: string;
+    seo_title: string;
+    seo_description: string;
+    main_image_url: string | null;
+    main_image_alt: string;
+    technology_ids: number[];
+    media: Media[];
+    case_study_sections: CaseSection[];
+};
 type TechnologyOption = { id: number; name: string; category: string };
-type Props = { project: ProjectData; technologies: TechnologyOption[]; developmentStatuses: Record<string, string>; publicationStatuses: Record<string, string>; caseStudyTemplates: Record<string, string> };
-type FormData = ProjectData & { main_image: File | null; remove_main_image: boolean; gallery_image: File | null; gallery_alt: string; gallery_caption: string; video_url: string; video_caption: string };
+type Props = {
+    project: ProjectData;
+    technologies: TechnologyOption[];
+    developmentStatuses: Record<string, string>;
+    publicationStatuses: Record<string, string>;
+    caseStudyTemplates: Record<string, string>;
+};
+type FormData = ProjectData & {
+    main_image: File | null;
+    remove_main_image: boolean;
+    gallery_image: File | null;
+    gallery_alt: string;
+    gallery_caption: string;
+    video_url: string;
+    video_caption: string;
+};
 
 function slugify(value: string): string {
-    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
 }
 
-export default function ProjectForm({ project, technologies, developmentStatuses, publicationStatuses, caseStudyTemplates }: Props) {
-    const [slugManuallyEdited, setSlugManuallyEdited] = useState(Boolean(project.slug));
-    const form = useForm<FormData>({ ...project, main_image: null, remove_main_image: false, gallery_image: null, gallery_alt: '', gallery_caption: '', video_url: '', video_caption: '' });
+export default function ProjectForm({
+    project,
+    technologies,
+    developmentStatuses,
+    publicationStatuses,
+    caseStudyTemplates,
+}: Props) {
+    const [slugManuallyEdited, setSlugManuallyEdited] = useState(
+        Boolean(project.slug),
+    );
+    const form = useForm<FormData>({
+        ...project,
+        main_image: null,
+        remove_main_image: false,
+        gallery_image: null,
+        gallery_alt: '',
+        gallery_caption: '',
+        video_url: '',
+        video_caption: '',
+    });
     const error = (key: string) => form.errors[key as keyof typeof form.errors];
-    const updateSection = (index: number, patch: Partial<CaseSection>) => form.setData('case_study_sections', form.data.case_study_sections.map((section, i) => i === index ? { ...section, ...patch } : section));
+    const updateSection = (index: number, patch: Partial<CaseSection>) =>
+        form.setData(
+            'case_study_sections',
+            form.data.case_study_sections.map((section, i) =>
+                i === index ? { ...section, ...patch } : section,
+            ),
+        );
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        form.post(project.id ? `/admin/projects/${project.id}` : '/admin/projects', { forceFormData: true, preserveScroll: true });
+        form.post(
+            project.id ? `/admin/projects/${project.id}` : '/admin/projects',
+            { forceFormData: true, preserveScroll: true },
+        );
     };
     const removeMedia = (media: Media) => {
-        if (project.id && window.confirm('¿Eliminar este elemento multimedia?')) router.delete(`/admin/projects/${project.id}/media/${media.id}`);
+        if (project.id && window.confirm('¿Eliminar este elemento multimedia?'))
+            router.delete(`/admin/projects/${project.id}/media/${media.id}`);
     };
-    const technologiesByCategory = technologies.reduce<Record<string, TechnologyOption[]>>((groups, technology) => {
+    const technologiesByCategory = technologies.reduce<
+        Record<string, TechnologyOption[]>
+    >((groups, technology) => {
         (groups[technology.category] ??= []).push(technology);
         return groups;
     }, {});
 
-    return <>
-        <Head title={`${project.id ? 'Editar' : 'Nuevo'} proyecto · Administración`} />
-        <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><Link href="/admin/projects" className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><ArrowLeft className="size-4" /> Proyectos</Link><p className="mb-2 text-sm font-medium text-teal-700">Gestor de proyectos</p><h1 className="text-3xl font-semibold tracking-tight">{project.id ? 'Editar proyecto' : 'Nuevo proyecto'}</h1><p className="mt-2 text-sm text-slate-500">Información, caso de estudio, tecnologías y multimedia.</p></div><div className="flex gap-2">{project.id && <Button asChild variant="outline"><Link href={`/admin/projects/${project.id}/preview`}><Eye className="mr-2 size-4" />Vista previa</Link></Button>}<Badge variant={form.data.publication_status === 'published' ? 'secondary' : 'outline'} className="self-center">{publicationStatuses[form.data.publication_status]}</Badge></div></div>
-        <form onSubmit={submit} className="space-y-6">
-            <Card className="border-slate-200 shadow-none"><CardHeader><CardTitle>Información principal</CardTitle><CardDescription>Datos del proyecto y enlaces públicos. El estado de desarrollo es independiente de la publicación.</CardDescription></CardHeader><CardContent className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="name">Nombre *</Label><Input id="name" required value={form.data.name} onChange={(e) => { const name = e.target.value; form.setData((data) => ({ ...data, name, ...(!slugManuallyEdited ? { slug: slugify(name) } : {}) })); }} />{error('name') && <p className="text-sm text-red-600">{error('name')}</p>}</div>
-                <div className="space-y-2"><Label htmlFor="slug">Slug URL *</Label><Input id="slug" required value={form.data.slug} onChange={(e) => { setSlugManuallyEdited(true); form.setData('slug', slugify(e.target.value)); }} /><p className="text-xs text-slate-500">/projects/{form.data.slug || 'nombre-del-proyecto'}</p>{error('slug') && <p className="text-sm text-red-600">{error('slug')}</p>}</div>
-                <div className="space-y-2 sm:col-span-2"><Label htmlFor="summary">Resumen *</Label><Textarea id="summary" required maxLength={500} value={form.data.summary} onChange={(e) => form.setData('summary', e.target.value)} />{error('summary') && <p className="text-sm text-red-600">{error('summary')}</p>}</div>
-                <div className="space-y-2 sm:col-span-2"><Label htmlFor="description">Descripción editorial</Label><Textarea id="description" className="min-h-36" value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} /><p className="text-xs text-slate-500">Texto plano, se muestra con saltos de línea; no se interpreta HTML.</p></div>
-                <div className="space-y-2"><Label htmlFor="category">Categoría *</Label><Input id="category" required value={form.data.category} onChange={(e) => form.setData('category', e.target.value)} placeholder="Aplicación web" /></div>
-                <div className="space-y-2"><Label htmlFor="project_type">Tipo de proyecto *</Label><Input id="project_type" required value={form.data.project_type} onChange={(e) => form.setData('project_type', e.target.value)} placeholder="Producto digital" /></div>
-                <div className="space-y-2"><Label htmlFor="role">Mi rol *</Label><Input id="role" required value={form.data.role} onChange={(e) => form.setData('role', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="client_company">Cliente o empresa</Label><Input id="client_company" value={form.data.client_company} onChange={(e) => form.setData('client_company', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="started_at">Fecha de inicio</Label><Input id="started_at" type="date" value={form.data.started_at} onChange={(e) => form.setData('started_at', e.target.value)} /></div>
-                <div className="space-y-2"><Label htmlFor="completed_at">Fecha de finalización</Label><Input id="completed_at" type="date" value={form.data.completed_at} onChange={(e) => form.setData('completed_at', e.target.value)} />{error('completed_at') && <p className="text-sm text-red-600">{error('completed_at')}</p>}</div>
-                <div className="space-y-2"><Label htmlFor="development_status">Estado de desarrollo *</Label><select id="development_status" value={form.data.development_status} onChange={(e) => form.setData('development_status', e.target.value)} className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm">{Object.entries(developmentStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-                <div className="space-y-2"><Label htmlFor="publication_status">Estado de publicación *</Label><select id="publication_status" value={form.data.publication_status} onChange={(e) => form.setData('publication_status', e.target.value as 'draft' | 'published')} className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm">{Object.entries(publicationStatuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-                <div className="space-y-2"><Label htmlFor="sort_order">Orden</Label><Input id="sort_order" type="number" min="0" max="1000" value={form.data.sort_order} onChange={(e) => form.setData('sort_order', Number(e.target.value))} /></div>
-                <div className="flex flex-wrap items-end gap-x-6 gap-y-3 sm:col-span-2"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.data.is_featured} onChange={(e) => form.setData('is_featured', e.target.checked)} className="size-4 accent-teal-700" />Proyecto destacado</label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.data.is_visible} onChange={(e) => form.setData('is_visible', e.target.checked)} className="size-4 accent-teal-700" />Visible cuando se publique</label></div>
-            </CardContent></Card>
+    return (
+        <>
+            <Head
+                title={`${project.id ? 'Editar' : 'Nuevo'} proyecto · Administración`}
+            />
+            <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                <div>
+                    <Link
+                        href="/admin/projects"
+                        className="mb-4 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
+                    >
+                        <ArrowLeft className="size-4" /> Proyectos
+                    </Link>
+                    <p className="mb-2 text-sm font-medium text-teal-700">
+                        Gestor de proyectos
+                    </p>
+                    <h1 className="text-3xl font-semibold tracking-tight">
+                        {project.id ? 'Editar proyecto' : 'Nuevo proyecto'}
+                    </h1>
+                    <p className="mt-2 text-sm text-slate-500">
+                        Información, caso de estudio, tecnologías y multimedia.
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    {project.id && (
+                        <Button asChild variant="outline">
+                            <Link
+                                href={`/admin/projects/${project.id}/preview`}
+                            >
+                                <Eye className="mr-2 size-4" />
+                                Vista previa
+                            </Link>
+                        </Button>
+                    )}
+                    <Badge
+                        variant={
+                            form.data.publication_status === 'published'
+                                ? 'secondary'
+                                : 'outline'
+                        }
+                        className="self-center"
+                    >
+                        {publicationStatuses[form.data.publication_status]}
+                    </Badge>
+                </div>
+            </div>
+            {Object.keys(form.errors).length > 0 && (
+                <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                >
+                    <p className="font-medium">
+                        No se pudo guardar el proyecto. Revisa estos campos:
+                    </p>
+                    <ul className="mt-2 list-inside list-disc space-y-1">
+                        {Object.entries(form.errors).map(([field, message]) => (
+                            <li key={field}>{message}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            <form onSubmit={submit} className="space-y-6">
+                <Card className="border-slate-200 shadow-none">
+                    <CardHeader>
+                        <CardTitle>Información principal</CardTitle>
+                        <CardDescription>
+                            Datos del proyecto y enlaces públicos. El estado de
+                            desarrollo es independiente de la publicación.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-5 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Nombre *</Label>
+                            <Input
+                                id="name"
+                                required
+                                value={form.data.name}
+                                onChange={(e) => {
+                                    const name = e.target.value;
+                                    form.setData((data) => ({
+                                        ...data,
+                                        name,
+                                        ...(!slugManuallyEdited
+                                            ? { slug: slugify(name) }
+                                            : {}),
+                                    }));
+                                }}
+                            />
+                            {error('name') && (
+                                <p className="text-sm text-red-600">
+                                    {error('name')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="slug">Slug URL *</Label>
+                            <Input
+                                id="slug"
+                                required
+                                value={form.data.slug}
+                                onChange={(e) => {
+                                    setSlugManuallyEdited(true);
+                                    form.setData(
+                                        'slug',
+                                        slugify(e.target.value),
+                                    );
+                                }}
+                            />
+                            <p className="text-xs text-slate-500">
+                                /projects/
+                                {form.data.slug || 'nombre-del-proyecto'}
+                            </p>
+                            {error('slug') && (
+                                <p className="text-sm text-red-600">
+                                    {error('slug')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="summary">Resumen *</Label>
+                            <Textarea
+                                id="summary"
+                                required
+                                maxLength={500}
+                                value={form.data.summary}
+                                onChange={(e) =>
+                                    form.setData('summary', e.target.value)
+                                }
+                            />
+                            {error('summary') && (
+                                <p className="text-sm text-red-600">
+                                    {error('summary')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="description">
+                                Descripción editorial
+                            </Label>
+                            <Textarea
+                                id="description"
+                                className="min-h-36"
+                                value={form.data.description}
+                                onChange={(e) =>
+                                    form.setData('description', e.target.value)
+                                }
+                            />
+                            <p className="text-xs text-slate-500">
+                                Texto plano, se muestra con saltos de línea; no
+                                se interpreta HTML.
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="category">Categoría *</Label>
+                            <Input
+                                id="category"
+                                required
+                                value={form.data.category}
+                                onChange={(e) =>
+                                    form.setData('category', e.target.value)
+                                }
+                                placeholder="Aplicación web"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="project_type">
+                                Tipo de proyecto *
+                            </Label>
+                            <Input
+                                id="project_type"
+                                required
+                                value={form.data.project_type}
+                                onChange={(e) =>
+                                    form.setData('project_type', e.target.value)
+                                }
+                                placeholder="Producto digital"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="role">Mi rol *</Label>
+                            <Input
+                                id="role"
+                                required
+                                value={form.data.role}
+                                onChange={(e) =>
+                                    form.setData('role', e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="client_company">
+                                Cliente o empresa
+                            </Label>
+                            <Input
+                                id="client_company"
+                                value={form.data.client_company}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'client_company',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="started_at">Fecha de inicio</Label>
+                            <Input
+                                id="started_at"
+                                type="date"
+                                value={form.data.started_at}
+                                onChange={(e) =>
+                                    form.setData('started_at', e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="completed_at">
+                                Fecha de finalización
+                            </Label>
+                            <Input
+                                id="completed_at"
+                                type="date"
+                                value={form.data.completed_at}
+                                onChange={(e) =>
+                                    form.setData('completed_at', e.target.value)
+                                }
+                            />
+                            {error('completed_at') && (
+                                <p className="text-sm text-red-600">
+                                    {error('completed_at')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="development_status">
+                                Estado de desarrollo *
+                            </Label>
+                            <select
+                                id="development_status"
+                                value={form.data.development_status}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'development_status',
+                                        e.target.value,
+                                    )
+                                }
+                                className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm"
+                            >
+                                {Object.entries(developmentStatuses).map(
+                                    ([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="publication_status">
+                                Estado de publicación *
+                            </Label>
+                            <select
+                                id="publication_status"
+                                value={form.data.publication_status}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'publication_status',
+                                        e.target.value as 'draft' | 'published',
+                                    )
+                                }
+                                className="h-9 w-full rounded-md border border-input bg-white px-3 text-sm"
+                            >
+                                {Object.entries(publicationStatuses).map(
+                                    ([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                            {error('publication_status') && (
+                                <p className="text-sm text-red-600">
+                                    {error('publication_status')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="sort_order">Orden</Label>
+                            <Input
+                                id="sort_order"
+                                type="number"
+                                min="0"
+                                max="1000"
+                                value={form.data.sort_order}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'sort_order',
+                                        Number(e.target.value),
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="visual_color">
+                                Color de la tarjeta
+                            </Label>
+                            <div className="flex items-center gap-3">
+                                <Input
+                                    id="visual_color"
+                                    type="color"
+                                    value={form.data.visual_color || '#16243b'}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'visual_color',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-10 w-16 p-1"
+                                />
+                                <span className="text-xs text-slate-500">
+                                    {form.data.visual_color ||
+                                        'Usar color editorial automático'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        form.setData('visual_color', '')
+                                    }
+                                    className="text-xs font-medium text-teal-700 hover:underline"
+                                >
+                                    Automático
+                                </button>
+                            </div>
+                            {error('visual_color') && (
+                                <p className="text-sm text-red-600">
+                                    {error('visual_color')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 sm:col-span-2">
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={form.data.is_featured}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'is_featured',
+                                            e.target.checked,
+                                        )
+                                    }
+                                    className="size-4 accent-teal-700"
+                                />
+                                Proyecto destacado
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={form.data.is_visible}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'is_visible',
+                                            e.target.checked,
+                                        )
+                                    }
+                                    className="size-4 accent-teal-700"
+                                />
+                                Visible cuando se publique
+                            </label>
+                        </div>
+                    </CardContent>
+                </Card>
 
-            <Card className="border-slate-200 shadow-none"><CardHeader><CardTitle>Tecnologías</CardTitle><CardDescription>Selecciona las tecnologías visibles del catálogo que se utilizaron en este proyecto.</CardDescription></CardHeader><CardContent className="space-y-5">{Object.entries(technologiesByCategory).length === 0 ? <p className="text-sm text-slate-500">El catálogo está vacío. Añade tecnologías desde el módulo Tecnologías.</p> : Object.entries(technologiesByCategory).map(([category, items]) => <fieldset key={category}><legend className="mb-2 text-sm font-medium">{category}</legend><div className="flex flex-wrap gap-2">{items.map((technology) => <label key={technology.id} className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-sm ${form.data.technology_ids.includes(technology.id) ? 'border-teal-700 bg-teal-50 text-teal-900' : 'border-slate-200 text-slate-600'}`}><input type="checkbox" checked={form.data.technology_ids.includes(technology.id)} onChange={(e) => form.setData('technology_ids', e.target.checked ? [...form.data.technology_ids, technology.id] : form.data.technology_ids.filter((id) => id !== technology.id))} className="sr-only" />{technology.name}</label>)}</div></fieldset>)}</CardContent></Card>
+                <Card className="border-slate-200 shadow-none">
+                    <CardHeader>
+                        <CardTitle>Tecnologías</CardTitle>
+                        <CardDescription>
+                            Selecciona las tecnologías visibles del catálogo que
+                            se utilizaron en este proyecto.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        {Object.entries(technologiesByCategory).length === 0 ? (
+                            <p className="text-sm text-slate-500">
+                                El catálogo está vacío. Añade tecnologías desde
+                                el módulo Tecnologías.
+                            </p>
+                        ) : (
+                            Object.entries(technologiesByCategory).map(
+                                ([category, items]) => (
+                                    <fieldset key={category}>
+                                        <legend className="mb-2 text-sm font-medium">
+                                            {category}
+                                        </legend>
+                                        <div className="flex flex-wrap gap-2">
+                                            {items.map((technology) => (
+                                                <label
+                                                    key={technology.id}
+                                                    className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-sm ${form.data.technology_ids.includes(technology.id) ? 'border-teal-700 bg-teal-50 text-teal-900' : 'border-slate-200 text-slate-600'}`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={form.data.technology_ids.includes(
+                                                            technology.id,
+                                                        )}
+                                                        onChange={(e) =>
+                                                            form.setData(
+                                                                'technology_ids',
+                                                                e.target.checked
+                                                                    ? [
+                                                                          ...form
+                                                                              .data
+                                                                              .technology_ids,
+                                                                          technology.id,
+                                                                      ]
+                                                                    : form.data.technology_ids.filter(
+                                                                          (
+                                                                              id,
+                                                                          ) =>
+                                                                              id !==
+                                                                              technology.id,
+                                                                      ),
+                                                            )
+                                                        }
+                                                        className="sr-only"
+                                                    />
+                                                    {technology.name}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
+                                ),
+                            )
+                        )}
+                    </CardContent>
+                </Card>
 
-            <Card className="border-slate-200 shadow-none"><CardHeader><CardTitle>Caso de estudio</CardTitle><CardDescription>Edita secciones de texto, ordénalas con valores numéricos y controla cuáles aparecen al público. Solo se renderiza texto escapado.</CardDescription></CardHeader><CardContent className="space-y-4">{form.data.case_study_sections.map((section, index) => <div key={section.key} className="rounded-xl border border-slate-200 p-4"><div className="grid gap-4 sm:grid-cols-[1fr_130px_auto] sm:items-end"><div className="space-y-2"><Label htmlFor={`section-title-${section.key}`}>Título · {caseStudyTemplates[section.key]}</Label><Input id={`section-title-${section.key}`} value={section.title} onChange={(e) => updateSection(index, { title: e.target.value })} /></div><div className="space-y-2"><Label htmlFor={`section-order-${section.key}`}>Orden</Label><Input id={`section-order-${section.key}`} type="number" min="0" max="1000" value={section.position} onChange={(e) => updateSection(index, { position: Number(e.target.value) })} /></div><label className="flex h-9 items-center gap-2 text-sm"><input type="checkbox" checked={section.is_visible} onChange={(e) => updateSection(index, { is_visible: e.target.checked })} className="size-4 accent-teal-700" />Visible</label></div><div className="mt-3 space-y-2"><Label htmlFor={`section-body-${section.key}`}>Contenido</Label><Textarea id={`section-body-${section.key}`} value={section.body} onChange={(e) => updateSection(index, { body: e.target.value })} placeholder="Añade información validada para este caso de estudio." /></div></div>)}{error('case_study_sections') && <p className="text-sm text-red-600">{error('case_study_sections')}</p>}</CardContent></Card>
+                <Card className="border-slate-200 shadow-none">
+                    <CardHeader>
+                        <CardTitle>Caso de estudio</CardTitle>
+                        <CardDescription>
+                            Edita secciones de texto, ordénalas con valores
+                            numéricos y controla cuáles aparecen al público.
+                            Solo se renderiza texto escapado.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {form.data.case_study_sections.map((section, index) => (
+                            <div
+                                key={section.key}
+                                className="rounded-xl border border-slate-200 p-4"
+                            >
+                                <div className="grid gap-4 sm:grid-cols-[1fr_130px_auto] sm:items-end">
+                                    <div className="space-y-2">
+                                        <Label
+                                            htmlFor={`section-title-${section.key}`}
+                                        >
+                                            Título ·{' '}
+                                            {caseStudyTemplates[section.key]}
+                                        </Label>
+                                        <Input
+                                            id={`section-title-${section.key}`}
+                                            value={section.title}
+                                            onChange={(e) =>
+                                                updateSection(index, {
+                                                    title: e.target.value,
+                                                })
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label
+                                            htmlFor={`section-order-${section.key}`}
+                                        >
+                                            Orden
+                                        </Label>
+                                        <Input
+                                            id={`section-order-${section.key}`}
+                                            type="number"
+                                            min="0"
+                                            max="1000"
+                                            value={section.position}
+                                            onChange={(e) =>
+                                                updateSection(index, {
+                                                    position: Number(
+                                                        e.target.value,
+                                                    ),
+                                                })
+                                            }
+                                        />
+                                    </div>
+                                    <label className="flex h-9 items-center gap-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={section.is_visible}
+                                            onChange={(e) =>
+                                                updateSection(index, {
+                                                    is_visible:
+                                                        e.target.checked,
+                                                })
+                                            }
+                                            className="size-4 accent-teal-700"
+                                        />
+                                        Visible
+                                    </label>
+                                </div>
+                                <div className="mt-3 space-y-2">
+                                    <Label
+                                        htmlFor={`section-body-${section.key}`}
+                                    >
+                                        Contenido
+                                    </Label>
+                                    <Textarea
+                                        id={`section-body-${section.key}`}
+                                        value={section.body}
+                                        onChange={(e) =>
+                                            updateSection(index, {
+                                                body: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Añade información validada para este caso de estudio."
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        {error('case_study_sections') && (
+                            <p className="text-sm text-red-600">
+                                {error('case_study_sections')}
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
 
-            <Card className="border-slate-200 shadow-none"><CardHeader><CardTitle>Imagen principal y galería</CardTitle><CardDescription>Solo se admiten JPEG, PNG y WebP rasterizados. Los archivos SVG y ejecutables no se aceptan.</CardDescription></CardHeader><CardContent className="space-y-5">
-                {form.data.main_image_url && !form.data.remove_main_image && <div className="max-w-xl overflow-hidden rounded-lg border border-slate-200"><img src={form.data.main_image_url} alt={form.data.main_image_alt} className="max-h-72 w-full object-cover" /><div className="p-3 text-sm text-slate-600">{form.data.main_image_alt}</div></div>}
-                <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="main_image">{form.data.main_image_url ? 'Reemplazar imagen principal' : 'Subir imagen principal'}</Label><Input id="main_image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => form.setData('main_image', e.target.files?.[0] ?? null)} />{error('main_image') && <p className="text-sm text-red-600">{error('main_image')}</p>}</div><div className="space-y-2"><Label htmlFor="main_image_alt">Texto alternativo *</Label><Input id="main_image_alt" value={form.data.main_image_alt} onChange={(e) => form.setData('main_image_alt', e.target.value)} />{error('main_image_alt') && <p className="text-sm text-red-600">{error('main_image_alt')}</p>}</div></div>
-                {form.data.main_image_url && <label className="flex items-center gap-2 text-sm text-red-700"><input type="checkbox" checked={form.data.remove_main_image} onChange={(e) => form.setData('remove_main_image', e.target.checked)} className="size-4 accent-red-700" />Quitar imagen principal</label>}
-                <div className="grid gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-3"><div className="space-y-2"><Label htmlFor="gallery_image">Añadir captura a galería</Label><Input id="gallery_image" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => form.setData('gallery_image', e.target.files?.[0] ?? null)} /></div><div className="space-y-2"><Label htmlFor="gallery_alt">Texto alternativo</Label><Input id="gallery_alt" value={form.data.gallery_alt} onChange={(e) => form.setData('gallery_alt', e.target.value)} /></div><div className="space-y-2"><Label htmlFor="gallery_caption">Pie de imagen</Label><Input id="gallery_caption" value={form.data.gallery_caption} onChange={(e) => form.setData('gallery_caption', e.target.value)} /></div>{error('gallery_image') && <p className="text-sm text-red-600">{error('gallery_image')}</p>}{error('gallery_alt') && <p className="text-sm text-red-600">{error('gallery_alt')}</p>}</div>
-                <div className="grid gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="video_url">Enlace de vídeo</Label><Input id="video_url" type="url" placeholder="https://youtu.be/…" value={form.data.video_url} onChange={(e) => form.setData('video_url', e.target.value)} /><p className="text-xs text-slate-500">Se permiten enlaces HTTPS de YouTube y Vimeo.</p>{error('video_url') && <p className="text-sm text-red-600">{error('video_url')}</p>}</div><div className="space-y-2"><Label htmlFor="video_caption">Título o pie del vídeo</Label><Input id="video_caption" value={form.data.video_caption} onChange={(e) => form.setData('video_caption', e.target.value)} /></div></div>
-                {form.data.media.length > 0 && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{form.data.media.map((media, index) => <div key={media.id} className="relative overflow-hidden rounded-lg border border-slate-200 bg-white">{media.kind === 'image' && media.url ? <img src={media.url} alt={media.alt_text ?? ''} className="h-40 w-full object-cover" /> : <div className="flex h-40 items-center justify-center bg-slate-100 px-4 text-center text-sm text-slate-600">Enlace de vídeo</div>}<div className="flex items-center justify-between gap-2 p-3"><div className="min-w-0"><p className="line-clamp-2 text-xs text-slate-500">{media.caption || media.alt_text || media.url}</p><Label htmlFor={`media-order-${media.id}`} className="mt-2 block text-xs text-slate-500">Orden</Label><Input id={`media-order-${media.id}`} type="number" min="0" max="1000" value={media.position} onChange={(e) => form.setData('media', form.data.media.map((item, i) => i === index ? { ...item, position: Number(e.target.value) } : item))} className="mt-1 h-8" /><label className="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={media.is_visible} onChange={(e) => form.setData('media', form.data.media.map((item, i) => i === index ? { ...item, is_visible: e.target.checked } : item))} className="size-3.5 accent-teal-700" />Visible públicamente</label></div><Button type="button" variant="ghost" size="icon" aria-label="Eliminar multimedia" onClick={() => removeMedia(media)}><Trash2 className="size-4 text-red-600" /></Button></div></div>)}</div>}
-            </CardContent></Card>
+                <Card className="border-slate-200 shadow-none">
+                    <CardHeader>
+                        <CardTitle>Imagen principal y galería</CardTitle>
+                        <CardDescription>
+                            Solo se admiten JPEG, PNG y WebP rasterizados. Los
+                            archivos SVG y ejecutables no se aceptan.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        {form.data.main_image_url &&
+                            !form.data.remove_main_image && (
+                                <div className="max-w-xl overflow-hidden rounded-lg border border-slate-200">
+                                    <img
+                                        src={form.data.main_image_url}
+                                        alt={form.data.main_image_alt}
+                                        className="max-h-72 w-full object-cover"
+                                    />
+                                    <div className="p-3 text-sm text-slate-600">
+                                        {form.data.main_image_alt}
+                                    </div>
+                                </div>
+                            )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="main_image">
+                                    {form.data.main_image_url
+                                        ? 'Reemplazar imagen principal'
+                                        : 'Subir imagen principal'}
+                                </Label>
+                                <Input
+                                    id="main_image"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'main_image',
+                                            e.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                />
+                                {error('main_image') && (
+                                    <p className="text-sm text-red-600">
+                                        {error('main_image')}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="main_image_alt">
+                                    Texto alternativo *
+                                </Label>
+                                <Input
+                                    id="main_image_alt"
+                                    value={form.data.main_image_alt}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'main_image_alt',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                {error('main_image_alt') && (
+                                    <p className="text-sm text-red-600">
+                                        {error('main_image_alt')}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        {form.data.main_image_url && (
+                            <label className="flex items-center gap-2 text-sm text-red-700">
+                                <input
+                                    type="checkbox"
+                                    checked={form.data.remove_main_image}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'remove_main_image',
+                                            e.target.checked,
+                                        )
+                                    }
+                                    className="size-4 accent-red-700"
+                                />
+                                Quitar imagen principal
+                            </label>
+                        )}
+                        <div className="grid gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="gallery_image">
+                                    Añadir captura a galería
+                                </Label>
+                                <Input
+                                    id="gallery_image"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'gallery_image',
+                                            e.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="gallery_alt">
+                                    Texto alternativo
+                                </Label>
+                                <Input
+                                    id="gallery_alt"
+                                    value={form.data.gallery_alt}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'gallery_alt',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="gallery_caption">
+                                    Pie de imagen
+                                </Label>
+                                <Input
+                                    id="gallery_caption"
+                                    value={form.data.gallery_caption}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'gallery_caption',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                            {error('gallery_image') && (
+                                <p className="text-sm text-red-600">
+                                    {error('gallery_image')}
+                                </p>
+                            )}
+                            {error('gallery_alt') && (
+                                <p className="text-sm text-red-600">
+                                    {error('gallery_alt')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="grid gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="video_url">
+                                    Enlace de vídeo
+                                </Label>
+                                <Input
+                                    id="video_url"
+                                    type="url"
+                                    placeholder="https://youtu.be/…"
+                                    value={form.data.video_url}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'video_url',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <p className="text-xs text-slate-500">
+                                    Se permiten enlaces HTTPS de YouTube y
+                                    Vimeo.
+                                </p>
+                                {error('video_url') && (
+                                    <p className="text-sm text-red-600">
+                                        {error('video_url')}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="video_caption">
+                                    Título o pie del vídeo
+                                </Label>
+                                <Input
+                                    id="video_caption"
+                                    value={form.data.video_caption}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'video_caption',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                        </div>
+                        {form.data.media.length > 0 && (
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                {form.data.media.map((media, index) => (
+                                    <div
+                                        key={media.id}
+                                        className="relative overflow-hidden rounded-lg border border-slate-200 bg-white"
+                                    >
+                                        {media.kind === 'image' && media.url ? (
+                                            <img
+                                                src={media.url}
+                                                alt={media.alt_text ?? ''}
+                                                className="h-40 w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-40 items-center justify-center bg-slate-100 px-4 text-center text-sm text-slate-600">
+                                                Enlace de vídeo
+                                            </div>
+                                        )}
+                                        <div className="flex items-center justify-between gap-2 p-3">
+                                            <div className="min-w-0">
+                                                <p className="line-clamp-2 text-xs text-slate-500">
+                                                    {media.caption ||
+                                                        media.alt_text ||
+                                                        media.url}
+                                                </p>
+                                                <Label
+                                                    htmlFor={`media-order-${media.id}`}
+                                                    className="mt-2 block text-xs text-slate-500"
+                                                >
+                                                    Orden
+                                                </Label>
+                                                <Input
+                                                    id={`media-order-${media.id}`}
+                                                    type="number"
+                                                    min="0"
+                                                    max="1000"
+                                                    value={media.position}
+                                                    onChange={(e) =>
+                                                        form.setData(
+                                                            'media',
+                                                            form.data.media.map(
+                                                                (item, i) =>
+                                                                    i === index
+                                                                        ? {
+                                                                              ...item,
+                                                                              position:
+                                                                                  Number(
+                                                                                      e
+                                                                                          .target
+                                                                                          .value,
+                                                                                  ),
+                                                                          }
+                                                                        : item,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="mt-1 h-8"
+                                                />
+                                                <label className="mt-2 flex items-center gap-2 text-xs">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            media.is_visible
+                                                        }
+                                                        onChange={(e) =>
+                                                            form.setData(
+                                                                'media',
+                                                                form.data.media.map(
+                                                                    (
+                                                                        item,
+                                                                        i,
+                                                                    ) =>
+                                                                        i ===
+                                                                        index
+                                                                            ? {
+                                                                                  ...item,
+                                                                                  is_visible:
+                                                                                      e
+                                                                                          .target
+                                                                                          .checked,
+                                                                              }
+                                                                            : item,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="size-3.5 accent-teal-700"
+                                                    />
+                                                    Visible públicamente
+                                                </label>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label="Eliminar multimedia"
+                                                onClick={() =>
+                                                    removeMedia(media)
+                                                }
+                                            >
+                                                <Trash2 className="size-4 text-red-600" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
-            <Card className="border-slate-200 shadow-none"><CardHeader><CardTitle>Enlaces y SEO</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="public_url">Enlace público</Label><Input id="public_url" type="url" placeholder="https://" value={form.data.public_url} onChange={(e) => form.setData('public_url', e.target.value)} />{error('public_url') && <p className="text-sm text-red-600">{error('public_url')}</p>}</div><div className="space-y-2"><Label htmlFor="repository_url">Repositorio</Label><Input id="repository_url" type="url" placeholder="https://github.com/…" value={form.data.repository_url} onChange={(e) => form.setData('repository_url', e.target.value)} />{error('repository_url') && <p className="text-sm text-red-600">{error('repository_url')}</p>}</div><div className="space-y-2"><Label htmlFor="seo_title">Título SEO</Label><Input id="seo_title" value={form.data.seo_title} onChange={(e) => form.setData('seo_title', e.target.value)} /></div><div className="space-y-2"><Label htmlFor="seo_description">Descripción SEO</Label><Textarea id="seo_description" value={form.data.seo_description} onChange={(e) => form.setData('seo_description', e.target.value)} /></div></CardContent></Card>
-            <div className="sticky bottom-3 flex justify-end"><Button type="submit" disabled={form.processing} className="gap-2 shadow-md"><Save className="size-4" />{form.processing ? 'Guardando…' : form.data.publication_status === 'published' ? 'Guardar y publicar' : 'Guardar borrador'}</Button></div>
-        </form>
-    </>;
+                <Card className="border-slate-200 shadow-none">
+                    <CardHeader>
+                        <CardTitle>Enlaces y SEO</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="public_url">Enlace público</Label>
+                            <Input
+                                id="public_url"
+                                type="url"
+                                placeholder="https://"
+                                value={form.data.public_url}
+                                onChange={(e) =>
+                                    form.setData('public_url', e.target.value)
+                                }
+                            />
+                            {error('public_url') && (
+                                <p className="text-sm text-red-600">
+                                    {error('public_url')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="repository_url">Repositorio</Label>
+                            <Input
+                                id="repository_url"
+                                type="url"
+                                placeholder="https://github.com/…"
+                                value={form.data.repository_url}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'repository_url',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            {error('repository_url') && (
+                                <p className="text-sm text-red-600">
+                                    {error('repository_url')}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="seo_title">Título SEO</Label>
+                            <Input
+                                id="seo_title"
+                                value={form.data.seo_title}
+                                onChange={(e) =>
+                                    form.setData('seo_title', e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="seo_description">
+                                Descripción SEO
+                            </Label>
+                            <Textarea
+                                id="seo_description"
+                                value={form.data.seo_description}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'seo_description',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+                <div className="sticky bottom-3 flex justify-end">
+                    <Button
+                        type="submit"
+                        disabled={form.processing}
+                        className="gap-2 shadow-md"
+                    >
+                        <Save className="size-4" />
+                        {form.processing
+                            ? 'Guardando…'
+                            : form.data.publication_status === 'published'
+                              ? 'Guardar y publicar'
+                              : 'Guardar borrador'}
+                    </Button>
+                </div>
+            </form>
+        </>
+    );
 }

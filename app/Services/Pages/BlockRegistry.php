@@ -2,13 +2,15 @@
 
 namespace App\Services\Pages;
 
+use App\Models\MediaAsset;
+
 class BlockRegistry
 {
     /** @return array<string, array<string, mixed>> */
     public function all(): array
     {
         return [
-            'hero' => ['label' => 'Hero', 'fields' => ['eyebrow', 'title', 'headline', 'body', 'description', 'button_label', 'button_url']],
+            'hero' => ['label' => 'Hero', 'fields' => ['eyebrow', 'title', 'headline', 'body', 'description', 'resume_action_label', 'projects_action_label', 'download_action_label', 'download_variant', 'resume_navigation_label', 'show_resume_action', 'show_projects_action', 'show_download_action', 'show_navigation_link', 'show_graphic']],
             'rich_text' => ['label' => 'Texto enriquecido', 'fields' => ['title', 'html']],
             'image' => ['label' => 'Imagen', 'fields' => ['url', 'alt', 'caption']],
             'gallery' => ['label' => 'Galería', 'fields' => ['images']],
@@ -17,7 +19,8 @@ class BlockRegistry
             'featured_projects' => ['label' => 'Proyectos destacados', 'fields' => ['eyebrow', 'title', 'description', 'limit']],
             'project_grid' => ['label' => 'Grid de proyectos', 'fields' => ['title', 'description', 'limit']],
             'profile' => ['label' => 'Perfil profesional', 'fields' => ['eyebrow', 'title', 'body']],
-            'timeline' => ['label' => 'Experiencia', 'fields' => ['eyebrow', 'title', 'description', 'note', 'items']],
+            'timeline' => ['label' => 'Experiencia', 'fields' => ['eyebrow', 'title', 'description', 'note', 'items', 'limit', 'cta_label', 'show_cta']],
+            'resume_experience' => ['label' => 'Trayectoria del currículum', 'fields' => ['eyebrow', 'title', 'description', 'limit', 'cta_label', 'show_cta']],
             'technologies' => ['label' => 'Tecnologías', 'fields' => ['eyebrow', 'title', 'description', 'groups']],
             'cta' => ['label' => 'CTA', 'fields' => ['eyebrow', 'title', 'body', 'description', 'button_label', 'button_url']],
             'separator' => ['label' => 'Separador', 'fields' => []],
@@ -32,7 +35,7 @@ class BlockRegistry
         abort_unless(isset($this->all()[$type]), 422, 'Tipo de bloque no válido.');
 
         return match ($type) {
-            'hero' => ['eyebrow' => '', 'title' => '', 'body' => '', 'button_label' => '', 'button_url' => ''],
+            'hero' => ['eyebrow' => '', 'title' => '', 'body' => '', 'resume_action_label' => 'Explorar mi trayectoria', 'projects_action_label' => 'Ver proyectos', 'download_action_label' => 'Descargar CV', 'download_variant' => 'professional', 'resume_navigation_label' => 'Mi CV', 'show_resume_action' => true, 'show_projects_action' => true, 'show_download_action' => true, 'show_navigation_link' => true, 'show_graphic' => true],
             'rich_text' => ['title' => '', 'html' => ''],
             'image' => ['url' => '', 'alt' => '', 'caption' => ''],
             'gallery' => ['images' => []],
@@ -40,7 +43,8 @@ class BlockRegistry
             'statistics' => ['items' => []],
             'featured_projects', 'project_grid' => ['title' => 'Proyectos', 'description' => '', 'limit' => 4],
             'profile' => ['title' => 'Sobre mí', 'body' => ''],
-            'timeline' => ['title' => 'Experiencia', 'items' => []],
+            'timeline' => ['title' => 'Experiencia', 'items' => [], 'limit' => 5, 'cta_label' => 'Explorar mi trayectoria', 'show_cta' => true],
+            'resume_experience' => ['eyebrow' => 'Trayectoria', 'title' => 'Experiencia profesional', 'description' => '', 'limit' => 5, 'cta_label' => 'Explorar mi trayectoria', 'show_cta' => true],
             'technologies' => ['title' => 'Tecnologías', 'groups' => []],
             'cta' => ['eyebrow' => '', 'title' => '', 'body' => '', 'button_label' => '', 'button_url' => ''],
             'separator' => [],
@@ -64,7 +68,7 @@ class BlockRegistry
             'stack' => ['eyebrow', 'title', 'description', 'groups'],
             'contact' => ['eyebrow', 'title', 'description'],
         ];
-        $allowed = array_unique(array_merge($this->all()[$type]['fields'], $legacyFields[$legacyKey] ?? []));
+        $allowed = array_unique(array_merge($this->all()[$type]['fields'], $legacyFields[$legacyKey] ?? [], $type === 'image' ? ['asset_id'] : []));
         $content = array_intersect_key($content, array_flip($allowed));
         if (is_string($legacyKey) && isset($legacyFields[$legacyKey])) {
             $content['legacy_key'] = $legacyKey;
@@ -76,6 +80,8 @@ class BlockRegistry
                 $content[$key] = is_array($value) ? array_slice(array_values($value), 0, 40) : [];
             } elseif ($key === 'limit') {
                 $content[$key] = min(12, max(1, (int) $value));
+            } elseif (is_bool($value)) {
+                continue;
             } elseif (! is_string($value) && ! is_numeric($value)) {
                 unset($content[$key]);
             } elseif (is_string($value)) {
@@ -85,6 +91,14 @@ class BlockRegistry
 
         if ($type === 'rich_text') {
             $content['html'] = app(SafeRichText::class)->sanitize((string) ($content['html'] ?? ''));
+        }
+        if ($type === 'hero' && ! in_array($content['download_variant'] ?? 'professional', ['professional', 'ats'], true)) {
+            $content['download_variant'] = 'professional';
+        }
+        if ($type === 'image' && filled($content['asset_id'] ?? null)) {
+            $asset = MediaAsset::query()->findOrFail((int) $content['asset_id']);
+            $content['url'] = $asset->url;
+            $content['alt'] = filled($content['alt'] ?? null) ? $content['alt'] : $asset->alt_text;
         }
         if (in_array($type, ['image', 'video'], true) && filled($content['url'] ?? null)) {
             $url = (string) $content['url'];
@@ -106,9 +120,14 @@ class BlockRegistry
             abort_unless($safe, 422, 'El enlace debe ser local, correo o HTTPS.');
         }
         if ($type === 'gallery') {
-            $content['images'] = array_slice(array_values(array_filter($content['images'] ?? [], function ($item): bool {
+            $content['images'] = array_slice(array_values(array_filter(array_map(function ($item): mixed {
                 if (! is_array($item) || ! is_string($item['url'] ?? null)) {
-                    return false;
+                    return null;
+                }
+                if (filled($item['asset_id'] ?? null)) {
+                    $asset = MediaAsset::query()->findOrFail((int) $item['asset_id']);
+                    $item['url'] = $asset->url;
+                    $item['alt'] = filled($item['alt'] ?? null) ? $item['alt'] : $asset->alt_text;
                 }
                 $url = $item['url'];
                 $safeUrl = str_starts_with($url, '/') && ! str_starts_with($url, '//')
@@ -116,8 +135,8 @@ class BlockRegistry
                 abort_unless($safeUrl, 422, 'La URL de la galería debe ser local o HTTPS.');
                 abort_unless(filled($item['alt'] ?? null), 422, 'Añade texto alternativo a todas las imágenes de la galería.');
 
-                return true;
-            })), 0, 24);
+                return $item;
+            }, $content['images'] ?? []))), 0, 24);
         }
         if (in_array($type, ['featured_projects', 'project_grid'], true)) {
             $content['limit'] = min(12, max(1, (int) ($content['limit'] ?? 4)));

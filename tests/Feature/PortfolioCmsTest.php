@@ -46,6 +46,10 @@ test('admin changes persist and public content follows visibility and order', fu
     foreach ($blocks as &$block) {
         if (($block['content']['legacy_key'] ?? null) === 'hero') {
             $block['content']['headline'] = 'Construyo productos digitales.';
+            $block['content']['show_navigation_link'] = false;
+            $block['content']['show_projects_action'] = false;
+            $block['content']['projects_action_label'] = 'Casos seleccionados';
+            $block['content']['download_variant'] = 'ats';
         }
         if (($block['content']['legacy_key'] ?? null) === 'experience') {
             $block['visible'] = false;
@@ -60,6 +64,8 @@ test('admin changes persist and public content follows visibility and order', fu
     $this->put(route('admin.pages.update', $home), $payload)->assertRedirect();
 
     expect($home->fresh()->draft_blocks[0]['content']['legacy_key'])->toBe('hero')
+        ->and($home->fresh()->draft_blocks[0]['content']['show_navigation_link'])->toBeFalse()
+        ->and($home->fresh()->draft_blocks[0]['content']['download_variant'])->toBe('ats')
         ->and($home->fresh()->published_blocks[0]['content']['headline'])->not->toBe('Construyo productos digitales.');
     $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('builderBlocks.0.content.headline', $home->published_blocks[0]['content']['headline']));
@@ -67,6 +73,10 @@ test('admin changes persist and public content follows visibility and order', fu
     $this->post(route('admin.pages.publish', $home))->assertRedirect();
     $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('builderBlocks.1.content.title', 'Hablemos de tu proyecto.')
+        ->where('builderBlocks.0.content.projects_action_label', 'Casos seleccionados')
+        ->where('builderBlocks.0.content.show_projects_action', false)
+        ->where('builderBlocks.0.content.download_variant', 'ats')
+        ->where('portfolio.resume.showNavigation', false)
         ->where('portfolio.navigation.0.label', 'Contacto')
         ->has('portfolio.navigation', 4));
 });

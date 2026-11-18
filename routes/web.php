@@ -1,16 +1,22 @@
 <?php
 
+use App\Http\Controllers\Admin\AppearanceController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DesignPreviewController;
 use App\Http\Controllers\Admin\HomePageController;
+use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\PageAssetController;
 use App\Http\Controllers\Admin\PortfolioPageController;
 use App\Http\Controllers\Admin\PortfolioSettingsController;
 use App\Http\Controllers\Admin\ProfessionalProfileController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ResumeController;
 use App\Http\Controllers\Admin\TechnologyController;
 use App\Http\Controllers\PublicContactController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\PublicProjectController;
+use App\Http\Controllers\PublicResumeController;
+use App\Http\Controllers\PublicResumePdfController;
 use App\Models\PortfolioPage;
 use App\Services\Pages\BuildPageBlocks;
 use App\Services\Portfolio\BuildPublicPortfolio;
@@ -36,18 +42,27 @@ Route::get('/projects', [PublicProjectController::class, 'index'])->name('projec
 Route::get('/projects/{slug}', [PublicProjectController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('projects.show');
+Route::get('/cv', [PublicResumeController::class, 'show'])->name('cv.show');
+Route::get('/cv/pdf/{variant}', PublicResumePdfController::class)->where('variant', 'professional|ats')->name('cv.pdf');
 Route::post('/contact', [PublicContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
 Route::get('/page-assets/{page}/{filename}', [PageAssetController::class, 'show'])
     ->where(['filename' => '[a-fA-F0-9-]{36}\.(?:jpg|jpeg|png|webp)'])
     ->name('pages.assets.show');
+Route::get('/media/{publicId}', [MediaLibraryController::class, 'show'])->whereUuid('publicId')->name('media.show');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'can:access-admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/design-preview', DesignPreviewController::class)->name('design-preview');
 
     Route::get('/home', [HomePageController::class, 'edit'])->name('home.edit');
     Route::put('/home', fn () => to_route('admin.pages.edit', PortfolioPage::query()->where('key', 'home')->firstOrFail()))->name('home.update');
 
     Route::get('/pages', [PortfolioPageController::class, 'index'])->name('pages.index');
+    Route::get('/media', [MediaLibraryController::class, 'index'])->name('media.index');
+    Route::get('/media/library', [MediaLibraryController::class, 'library'])->name('media.library');
+    Route::post('/media', [MediaLibraryController::class, 'store'])->middleware('throttle:20,1')->name('media.store');
+    Route::put('/media/{asset}', [MediaLibraryController::class, 'update'])->name('media.update');
+    Route::delete('/media/{asset}', [MediaLibraryController::class, 'destroy'])->name('media.destroy');
     Route::get('/pages/create', [PortfolioPageController::class, 'create'])->name('pages.create');
     Route::post('/pages', [PortfolioPageController::class, 'store'])->middleware('throttle:30,1')->name('pages.store');
     Route::get('/pages/{page}/edit', [PortfolioPageController::class, 'edit'])->name('pages.edit');
@@ -63,8 +78,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'can:acc
     Route::get('/profile', [ProfessionalProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfessionalProfileController::class, 'update'])->middleware('throttle:20,1')->name('profile.update');
 
+    Route::get('/resume', [ResumeController::class, 'edit'])->name('resume.edit');
+    Route::put('/resume', [ResumeController::class, 'update'])->middleware('throttle:20,1')->name('resume.update');
+    Route::post('/resume/publish', [ResumeController::class, 'publish'])->middleware('throttle:20,1')->name('resume.publish');
+    Route::get('/resume/preview', [ResumeController::class, 'preview'])->name('resume.preview');
+
     Route::get('/settings', [PortfolioSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('/settings', [PortfolioSettingsController::class, 'update'])->middleware('throttle:20,1')->name('settings.update');
+
+    Route::get('/appearance', [AppearanceController::class, 'edit'])->name('appearance.edit');
+    Route::put('/appearance', [AppearanceController::class, 'update'])->middleware('throttle:20,1')->name('appearance.update');
+    Route::post('/appearance/presets/{preset}', [AppearanceController::class, 'restorePreset'])->where('preset', '[a-z-]+')->name('appearance.presets.restore');
+    Route::post('/appearance/publish', [AppearanceController::class, 'publish'])->name('appearance.publish');
+    Route::post('/appearance/revisions/{revision}/restore', [AppearanceController::class, 'restoreRevision'])->name('appearance.revisions.restore');
+    Route::get('/appearance/preview', [AppearanceController::class, 'preview'])->name('appearance.preview');
 
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');

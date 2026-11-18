@@ -17,6 +17,8 @@ void createInertiaApp({
                 return null;
             case name.startsWith('projects/'):
             case name.startsWith('public/'):
+            case name === 'cv/show':
+            case name === 'admin/design-preview':
                 return null;
             case name.startsWith('admin/'):
                 return AdminLayout;

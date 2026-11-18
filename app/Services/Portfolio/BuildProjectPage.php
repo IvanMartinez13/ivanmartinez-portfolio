@@ -21,6 +21,7 @@ class BuildProjectPage
             'summary' => $project->summary,
             'description' => $project->description,
             'category' => $project->category,
+            'visualColor' => $project->visual_color,
             'projectType' => $project->project_type,
             'role' => $project->role,
             'clientCompany' => $project->client_company,

@@ -87,7 +87,12 @@ class ProjectController extends Controller
             return $project;
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Proyecto creado como borrador.']);
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $project->publication_status === 'published'
+                ? 'Proyecto publicado.'
+                : 'Proyecto creado como borrador.',
+        ]);
 
         return to_route('admin.projects.edit', $project);
     }
@@ -314,6 +319,7 @@ class ProjectController extends Controller
             'is_featured' => $project->is_featured ?? false,
             'is_visible' => $project->is_visible ?? true,
             'sort_order' => $project->sort_order ?? 0,
+            'visual_color' => $project->visual_color ?? '',
             'public_url' => $project->public_url ?? '',
             'repository_url' => $project->repository_url ?? '',
             'seo_title' => $project->seo_title ?? '',

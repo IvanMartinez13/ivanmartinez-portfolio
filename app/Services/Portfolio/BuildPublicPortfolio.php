@@ -2,10 +2,14 @@
 
 namespace App\Services\Portfolio;
 
+use App\Models\PortfolioAppearance;
 use App\Models\PortfolioPage;
 use App\Models\PortfolioSetting;
 use App\Models\ProfessionalProfile;
 use App\Models\Project;
+use App\Models\ResumePublication;
+use App\Services\Appearance\AppearancePresets;
+use App\Support\PublicLocation;
 
 class BuildPublicPortfolio
 {
@@ -29,6 +33,8 @@ class BuildPublicPortfolio
 
         $aboutParagraphs = preg_split('/\R\s*\R/u', trim($profile->biography)) ?: [];
         $links = $profile->links ?? [];
+        $resumeNavigation = $this->resumeNavigation($preview ? ($page->draft_blocks ?? []) : ($page->published_blocks ?? []));
+        $contact = $this->publicContact($profile->contact_email, $links);
 
         return [
             'identity' => [
@@ -36,7 +42,7 @@ class BuildPublicPortfolio
                 'monogram' => $this->monogram($profile->public_name),
                 'role' => $profile->headline,
                 'specialty' => $profile->specialty,
-                'location' => $profile->location,
+                'location' => PublicLocation::cityAndRegion($profile->location),
                 'photoUrl' => $profile->photo_url,
             ],
             'hero' => [
@@ -57,6 +63,7 @@ class BuildPublicPortfolio
                 ])
                 ->values()
                 ->all(),
+            'resume' => $resumeNavigation,
             'sections' => $page->sections
                 ->map(fn ($section): array => [
                     'key' => $section->key,
@@ -76,21 +83,18 @@ class BuildPublicPortfolio
                 'eyebrow' => $sections->get('contact')->content['eyebrow'] ?? '',
                 'title' => $sections->get('contact')->content['title'] ?? '',
                 'description' => $sections->get('contact')->content['description'] ?? '',
-                'email' => $profile->contact_email,
-                'linkedin' => $links['linkedin'] ?? null,
-                'github' => $links['github'] ?? null,
-                'website' => $links['website'] ?? null,
-                'cvUrl' => $links['cv'] ?? null,
+                ...$contact,
             ],
             'footer' => [
                 'copyright' => $profile->public_name,
-                'note' => $settings->footer_note ?? '',
+                'note' => $this->publicFooterNote($settings->footer_note ?? ''),
             ],
             'settings' => [
                 'siteTitle' => $settings->site_title,
                 'metaDescription' => $settings->default_meta_description,
                 'locale' => $settings->locale,
             ],
+            'appearance' => app(AppearancePresets::class)->publicConfig(PortfolioAppearance::query()->where('key', 'primary')->first()?->published_config),
         ];
     }
 
@@ -103,6 +107,8 @@ class BuildPublicPortfolio
         $settings = PortfolioSetting::query()->where('key', 'primary')->firstOrFail();
         $page = PortfolioPage::query()->published()->where('key', 'home')->with('sections')->first();
         $links = $profile->links ?? [];
+        $resumeNavigation = $this->resumeNavigation($page?->published_blocks ?? []);
+        $contact = $this->publicContact($profile->contact_email, $links);
 
         return [
             'identity' => [
@@ -114,17 +120,15 @@ class BuildPublicPortfolio
                 ->sortBy('position')
                 ->map(fn (array $block): array => ['label' => $block['nav_label'], 'href' => '/#'.$block['id']])
                 ->values()->all() ?? [],
+            'resume' => $resumeNavigation,
             'contact' => [
-                'cvUrl' => $links['cv'] ?? null,
-                'email' => $profile->contact_email,
-                'linkedin' => $links['linkedin'] ?? null,
-                'github' => $links['github'] ?? null,
-                'website' => $links['website'] ?? null,
+                ...$contact,
             ],
             'footer' => [
                 'copyright' => $profile->public_name,
-                'note' => $settings->footer_note ?? '',
+                'note' => $this->publicFooterNote($settings->footer_note ?? ''),
             ],
+            'appearance' => app(AppearancePresets::class)->publicConfig(PortfolioAppearance::query()->where('key', 'primary')->first()?->published_config),
         ];
     }
 
@@ -136,6 +140,35 @@ class BuildPublicPortfolio
             ->orderBy('sort_order')->orderBy('name')->limit(4)->get()
             ->map(fn (Project $project): array => $this->projectCard($project))
             ->values()->all();
+    }
+
+    private function publicFooterNote(string $note): string
+    {
+        $hasPublishedResume = ResumePublication::query()->exists();
+
+        $preparationNotice = '/(?:\b(?:contenido|perfil|portfolio|curr[ií]culum|sitio).{0,32}\b(?:preparaci[oó]n|pendiente|provisional|pr[oó]ximamente)\b|\b(?:en preparaci[oó]n|en construcci[oó]n|pr[oó]ximamente|pendiente de publicar|versi[oó]n provisional)\b)/iu';
+        if ($hasPublishedResume && preg_match($preparationNotice, $note)) {
+            return '';
+        }
+
+        return $note;
+    }
+
+    /** @param array<string, mixed> $links
+     * @return array{email: ?string, linkedin: ?string, github: ?string, website: ?string}
+     */
+    private function publicContact(?string $email, array $links): array
+    {
+        $publication = ResumePublication::query()->orderByDesc('version')->first();
+        $config = is_array($publication?->snapshot['config'] ?? null) ? $publication->snapshot['config'] : [];
+        $visibleLinks = is_array($config['visible_links'] ?? null) ? $config['visible_links'] : [];
+
+        return [
+            'email' => ($config['show_email'] ?? false) ? $email : null,
+            'linkedin' => in_array('linkedin', $visibleLinks, true) ? ($links['linkedin'] ?? null) : null,
+            'github' => in_array('github', $visibleLinks, true) ? ($links['github'] ?? null) : null,
+            'website' => in_array('website', $visibleLinks, true) ? ($links['website'] ?? null) : null,
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -151,6 +184,7 @@ class BuildPublicPortfolio
             'imageAlt' => $project->main_image_alt,
             'technologies' => $project->technologies->pluck('name')->values()->all(),
             'isFeatured' => $project->is_featured,
+            'visualColor' => $project->visual_color,
         ];
     }
 
@@ -221,5 +255,21 @@ class BuildPublicPortfolio
         $initials = collect($parts)->take(2)->map(fn (string $part): string => mb_strtoupper(mb_substr($part, 0, 1)))->implode('');
 
         return ($initials !== '' ? $initials : 'IM').'.';
+    }
+
+    /** @param array<int, array<string, mixed>> $blocks
+     * @return array{published: bool, showNavigation: bool, navigationLabel: string}
+     */
+    private function resumeNavigation(array $blocks): array
+    {
+        $hero = collect($blocks)->first(fn (array $block): bool => ($block['type'] ?? null) === 'hero');
+        $content = is_array($hero['content'] ?? null) ? $hero['content'] : [];
+        $label = trim((string) ($content['resume_navigation_label'] ?? ''));
+
+        return [
+            'published' => ResumePublication::query()->exists(),
+            'showNavigation' => ($content['show_navigation_link'] ?? true) !== false,
+            'navigationLabel' => $label !== '' ? mb_substr($label, 0, 80) : 'Mi CV',
+        ];
     }
 }

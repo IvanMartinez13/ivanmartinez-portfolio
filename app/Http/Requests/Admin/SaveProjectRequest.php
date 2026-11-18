@@ -40,6 +40,7 @@ class SaveProjectRequest extends FormRequest
             'is_featured' => ['required', 'boolean'],
             'is_visible' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:1000'],
+            'visual_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'public_url' => ['nullable', 'url:https', 'max:2048'],
             'repository_url' => ['nullable', 'url:https', 'max:2048'],
             'seo_title' => ['nullable', 'string', 'max:180'],
